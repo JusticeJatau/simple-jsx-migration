@@ -27,9 +27,6 @@ import {
 } from "@/components/ui/select";
 import { OrderStatusBadge } from "@/components/order-status-badge";
 import { formatNaira, statusLabel } from "@/lib/format";
-const Route = createFileRoute("/_authenticated/admin")({
-  component: AdminPage
-});
 const STATUSES = ["pending", "preparing", "ready", "out_for_delivery", "completed", "cancelled"];
 function AdminPage() {
   const navigate = useNavigate();
@@ -388,8 +385,4 @@ function MenuItemDialog({
       </DialogContent>
     </Dialog>;
 }
-export {
-  Route
-};
-
 export default AdminPage;
