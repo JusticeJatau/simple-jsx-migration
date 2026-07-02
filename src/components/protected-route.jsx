@@ -1,7 +1,12 @@
-import { useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+
+const AuthUserContext = createContext(null);
+export function useAuthUser() {
+  return useContext(AuthUserContext);
+}
 
 export default function ProtectedRoute({ children }) {
   const [state, setState] = useState({ loading: true, user: null });
@@ -30,5 +35,9 @@ export default function ProtectedRoute({ children }) {
     );
   }
   if (!state.user) return <Navigate to="/auth" replace />;
-  return typeof children === "function" ? children(state.user) : children;
+  return (
+    <AuthUserContext.Provider value={state.user}>
+      {typeof children === "function" ? children(state.user) : children}
+    </AuthUserContext.Provider>
+  );
 }
