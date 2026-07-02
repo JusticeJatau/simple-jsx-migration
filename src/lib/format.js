@@ -1,7 +1,10 @@
-export function formatNaira(kobo: number): string {
-  return "₦" + kobo.toLocaleString("en-NG");
+function formatNaira(kobo) {
+  return "\u20A6" + kobo.toLocaleString("en-NG");
 }
-
-export function statusLabel(status: string): string {
+function statusLabel(status) {
   return status.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
+export {
+  formatNaira,
+  statusLabel
+};
