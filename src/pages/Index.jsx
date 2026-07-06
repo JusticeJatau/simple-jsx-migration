@@ -1,20 +1,82 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, Clock, MapPin, Sparkles } from "lucide-react";
+import { motion } from "framer-motion";
+import {
+  ArrowRight, Star, Truck, Utensils, ShieldCheck, Leaf, Flame, Clock,
+  ChefHat, Plus, Quote,
+} from "lucide-react";
 
-import heroImg from "@/assets/hero.jpg";
+import heroImg from "@/assets/hero-feast.jpg";
+import chefImg from "@/assets/chef.jpg";
+import catRice from "@/assets/cat-rice.jpg";
+import catGrills from "@/assets/cat-grills.jpg";
+import catSoups from "@/assets/cat-soups.jpg";
+import catDrinks from "@/assets/cat-drinks.jpg";
+import catChops from "@/assets/cat-chops.jpg";
+
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
-import { MenuCard } from "@/components/menu-card";
 import { CartSheet } from "@/components/cart-sheet";
+import { useCart } from "@/lib/cart.jsx";
+import { formatNaira } from "@/lib/format";
+import { toast } from "sonner";
 
+/* ------------------------------------------------------------------ */
+/*  Motion presets                                                     */
+/* ------------------------------------------------------------------ */
+const fadeUp = {
+  hidden: { opacity: 0, y: 32 },
+  visible: (i = 0) => ({
+    opacity: 1, y: 0,
+    transition: { duration: 0.7, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] },
+  }),
+};
+
+/* ------------------------------------------------------------------ */
+/*  Static content (categories, why-us, testimonials)                  */
+/* ------------------------------------------------------------------ */
+const featuredCategories = [
+  { name: "Rice Specials", desc: "Smoky jollof, fried rice, coconut rice.", img: catRice, emoji: "🍚" },
+  { name: "Grills", desc: "Suya, asun and flame-kissed skewers.",         img: catGrills, emoji: "🍖" },
+  { name: "Soups",  desc: "Egusi, ogbono, efo riro & swallow.",           img: catSoups,  emoji: "🍲" },
+  { name: "Drinks", desc: "Zobo, chapman and house cocktails.",           img: catDrinks, emoji: "🥤" },
+  { name: "Small Chops", desc: "Puff-puff, samosas, spring rolls.",       img: catChops,  emoji: "🥟" },
+];
+
+const whyUs = [
+  { icon: Leaf,        title: "Fresh Ingredients",   desc: "Sourced daily from Lagos' finest local markets." },
+  { icon: Truck,       title: "Fast Delivery",       desc: "Delivered hot in 30–45 minutes across Lagos." },
+  { icon: ChefHat,     title: "Traditional Recipes", desc: "Family recipes passed down three generations." },
+  { icon: ShieldCheck, title: "Secure Payments",     desc: "Safe checkout, powered by Paystack." },
+];
+
+const testimonials = [
+  { name: "Adaeze O.",   text: "The jollof tastes like my grandmother made it. Absolutely unreal.",        avatar: "https://i.pravatar.cc/120?img=47" },
+  { name: "Tunde K.",    text: "Suya was smoky and tender. Delivery was faster than promised.",            avatar: "https://i.pravatar.cc/120?img=12" },
+  { name: "Chiamaka N.", text: "Best egusi in Lagos, hands down. The pounded yam was heaven.",             avatar: "https://i.pravatar.cc/120?img=32" },
+  { name: "Femi A.",     text: "Ordered small chops for a party. Everyone was asking where I got them.",   avatar: "https://i.pravatar.cc/120?img=8"  },
+  { name: "Zainab S.",   text: "The chapman is dangerously good. Coming back every weekend.",              avatar: "https://i.pravatar.cc/120?img=45" },
+  { name: "Ibrahim L.",  text: "Warm packaging, generous portions, real Nigerian flavour. 10/10.",         avatar: "https://i.pravatar.cc/120?img=15" },
+];
+
+const timeline = [
+  { year: "1998", text: "A small kitchen opens in Ikeja, feeding neighbours from a single pot of jollof." },
+  { year: "2010", text: "The family recipe crosses Lagos — catering weddings, parties and boardrooms." },
+  { year: "2020", text: "Tradish becomes a beloved dine-in restaurant in the heart of Ikeja." },
+  { year: "Today", text: "We deliver soulful, slow-cooked Nigerian food across the city, every single day." },
+];
+
+/* ------------------------------------------------------------------ */
+/*  Page                                                               */
+/* ------------------------------------------------------------------ */
 export default function Index() {
   const [cartOpen, setCartOpen] = useState(false);
+  const { add } = useCart();
 
   useEffect(() => {
-    document.title = "Tradish Restaurant — Authentic Nigerian food, delivered";
+    document.title = "Tradish — A Taste of Nigeria, Delivered";
   }, []);
 
   const { data } = useQuery({
@@ -28,86 +90,401 @@ export default function Index() {
     },
   });
 
-  const categories = data?.categories ?? [];
-  const items = data?.items ?? [];
+  const popular = (data?.items ?? []).filter((i) => i.available).slice(0, 6);
+  const galleryImgs = (data?.items ?? []).filter((i) => i.image_url).slice(0, 8);
+
+  const onAdd = (item) => {
+    add({ id: item.id, name: item.name, price: item.price_ngn, image_url: item.image_url });
+    toast.success(`${item.name} added to cart`);
+  };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div id="home" className="min-h-screen overflow-x-hidden bg-background text-foreground">
       <SiteHeader onOpenCart={() => setCartOpen(true)} />
       <CartSheet open={cartOpen} onOpenChange={setCartOpen} />
 
-      <section className="relative overflow-hidden">
-        <div className="mx-auto grid max-w-6xl gap-10 px-4 pt-10 pb-16 sm:px-6 lg:grid-cols-2 lg:gap-16 lg:pt-20 lg:pb-24">
-          <div className="flex flex-col justify-center">
-            <span className="inline-flex w-fit items-center gap-2 rounded-full border border-accent/40 bg-accent/10 px-3 py-1 text-xs font-medium uppercase tracking-wider text-accent-foreground">
-              <Sparkles className="h-3 w-3" /> Authentic Nigerian kitchen
-            </span>
-            <h1 className="mt-5 font-display text-4xl leading-[1.05] font-semibold text-primary sm:text-5xl lg:text-6xl">
-              A taste of home, <span className="italic text-accent">delivered</span> hot.
-            </h1>
-            <p className="mt-5 max-w-lg text-base text-muted-foreground sm:text-lg">
-              From smoky party jollof to slow-simmered egusi — Tradish Restaurant brings you generations of Nigerian flavour, cooked fresh and delivered to your door.
+      {/* ============================== HERO ============================== */}
+      <section className="relative isolate flex min-h-[100svh] items-center overflow-hidden">
+        <div className="absolute inset-0 -z-10">
+          <img
+            src={heroImg}
+            alt="A cinematic spread of Nigerian dishes"
+            className="h-full w-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-background/70 via-background/60 to-background" />
+          <div className="absolute inset-0 bg-gradient-to-r from-background/90 via-background/30 to-transparent" />
+        </div>
+
+        {/* floating decorations */}
+        <motion.div
+          aria-hidden
+          className="absolute right-[8%] top-[18%] hidden h-56 w-56 rounded-full bg-primary/20 blur-3xl md:block"
+          animate={{ y: [0, -18, 0] }}
+          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <motion.div
+          aria-hidden
+          className="absolute bottom-[14%] left-[6%] hidden h-40 w-40 rounded-full bg-accent/25 blur-3xl md:block"
+          animate={{ y: [0, 20, 0] }}
+          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+        />
+
+        <div className="mx-auto w-full max-w-7xl px-6 pt-32 pb-20 sm:px-8 lg:px-12">
+          <motion.div
+            initial="hidden" animate="visible"
+            className="max-w-3xl"
+          >
+            <motion.span
+              variants={fadeUp} custom={0}
+              className="inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-4 py-1.5 text-[11px] font-medium uppercase tracking-[0.2em] text-primary backdrop-blur"
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+              Authentic Nigerian Cuisine
+            </motion.span>
+
+            <motion.h1
+              variants={fadeUp} custom={1}
+              className="mt-6 font-display text-5xl font-semibold leading-[1.02] tracking-tight text-foreground sm:text-6xl md:text-7xl lg:text-[88px]"
+            >
+              Every Plate <br className="hidden sm:block" />
+              Tells a <span className="italic text-primary">Story.</span>
+            </motion.h1>
+
+            <motion.p
+              variants={fadeUp} custom={2}
+              className="mt-6 max-w-xl text-base leading-relaxed text-foreground/75 sm:text-lg"
+            >
+              From smoky party jollof to slow-simmered egusi — we bring you generations
+              of Nigerian flavour, cooked fresh and delivered to your door.
+            </motion.p>
+
+            <motion.div variants={fadeUp} custom={3} className="mt-9 flex flex-wrap gap-4">
+              <Button asChild size="lg" className="group h-12 gap-2 rounded-full bg-primary px-7 text-primary-foreground shadow-xl shadow-primary/30 hover:bg-primary/90">
+                <a href="#menu">
+                  Order Food
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                </a>
+              </Button>
+              <Button asChild variant="outline" size="lg" className="h-12 rounded-full border-white/20 bg-white/5 px-7 text-foreground backdrop-blur hover:border-primary hover:bg-white/10 hover:text-primary">
+                <a href="#menu">Browse Menu</a>
+              </Button>
+            </motion.div>
+
+            {/* stat cards */}
+            <motion.div
+              variants={fadeUp} custom={4}
+              className="mt-14 grid max-w-2xl grid-cols-1 gap-4 sm:grid-cols-3"
+            >
+              {[
+                { icon: Star,  label: "4.9 Rating",       sub: "2,300+ reviews" },
+                { icon: Truck, label: "30–45 min",         sub: "Fast delivery" },
+                { icon: Utensils, label: "50+ Dishes",     sub: "Authentic menu" },
+              ].map(({ icon: Icon, label, sub }) => (
+                <div
+                  key={label}
+                  className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-4 backdrop-blur-md"
+                >
+                  <span className="grid h-11 w-11 flex-none place-items-center rounded-xl bg-primary/15 text-primary">
+                    <Icon className="h-5 w-5" />
+                  </span>
+                  <div>
+                    <div className="font-display text-lg font-semibold text-foreground">{label}</div>
+                    <div className="text-xs text-muted-foreground">{sub}</div>
+                  </div>
+                </div>
+              ))}
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ========================= FEATURED CATEGORIES =========================== */}
+      <section className="relative py-24 sm:py-32">
+        <SectionHeader eyebrow="Explore" title="Featured Categories" sub="A menu built around the dishes Nigerians love the most." />
+
+        <div className="mx-auto mt-14 grid max-w-7xl grid-cols-1 gap-5 px-6 sm:grid-cols-2 lg:grid-cols-3 lg:px-8">
+          {featuredCategories.map((c, i) => (
+            <motion.a
+              key={c.name}
+              href="#menu"
+              variants={fadeUp} custom={i}
+              initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.3 }}
+              whileHover={{ y: -6 }}
+              className={`group relative overflow-hidden rounded-3xl border border-white/10 bg-card ${
+                i === 0 ? "lg:col-span-2 lg:row-span-2" : ""
+              }`}
+            >
+              <div className={`relative ${i === 0 ? "aspect-[4/3] lg:aspect-auto lg:h-full" : "aspect-[4/3]"}`}>
+                <img
+                  src={c.img}
+                  alt={c.name}
+                  loading="lazy"
+                  className="h-full w-full object-cover transition-transform duration-[1200ms] group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
+                <div className="absolute inset-0 flex flex-col justify-end p-6 sm:p-8">
+                  <div className="mb-2 text-2xl">{c.emoji}</div>
+                  <h3 className="font-display text-2xl font-semibold text-foreground sm:text-3xl">{c.name}</h3>
+                  <p className="mt-1 max-w-xs text-sm text-muted-foreground">{c.desc}</p>
+                  <span className="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+                    Explore <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
+                  </span>
+                </div>
+              </div>
+            </motion.a>
+          ))}
+        </div>
+      </section>
+
+      {/* ========================= POPULAR DISHES =========================== */}
+      <section id="menu" className="relative bg-[oklch(0.14_0.008_60)] py-24 sm:py-32">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+        <SectionHeader eyebrow="On The Table" title="Customer Favorites" sub="Six dishes our regulars order again and again." />
+
+        <div className="mx-auto mt-14 grid max-w-7xl grid-cols-1 gap-6 px-6 sm:grid-cols-2 lg:grid-cols-3 lg:px-8">
+          {popular.length === 0
+            ? Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="h-[420px] animate-pulse rounded-3xl bg-white/[0.04]" />
+              ))
+            : popular.map((item, i) => (
+                <motion.article
+                  key={item.id}
+                  variants={fadeUp} custom={i}
+                  initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }}
+                  whileHover={{ y: -8 }}
+                  className="group flex flex-col overflow-hidden rounded-3xl border border-white/10 bg-card transition-shadow hover:shadow-2xl hover:shadow-primary/10"
+                >
+                  <div className="relative aspect-[4/3] overflow-hidden">
+                    {item.image_url ? (
+                      <img src={item.image_url} alt={item.name} loading="lazy" className="h-full w-full object-cover transition-transform duration-[900ms] group-hover:scale-110" />
+                    ) : (
+                      <div className="grid h-full place-items-center bg-muted text-muted-foreground">No image</div>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+                    <div className="absolute left-4 top-4 inline-flex items-center gap-1 rounded-full bg-background/80 px-2.5 py-1 text-xs font-medium text-primary backdrop-blur">
+                      <Star className="h-3 w-3 fill-primary" /> 4.9
+                    </div>
+                  </div>
+                  <div className="flex flex-1 flex-col p-6">
+                    <h3 className="font-display text-xl font-semibold text-foreground">{item.name}</h3>
+                    <p className="mt-2 line-clamp-2 flex-1 text-sm text-muted-foreground">{item.description}</p>
+                    <div className="mt-5 flex items-center justify-between">
+                      <span className="font-display text-xl font-semibold text-primary">{formatNaira(item.price_ngn)}</span>
+                      <Button size="sm" onClick={() => onAdd(item)} className="gap-1.5 rounded-full bg-primary text-primary-foreground hover:bg-primary/90">
+                        <Plus className="h-4 w-4" /> Add
+                      </Button>
+                    </div>
+                  </div>
+                </motion.article>
+              ))}
+        </div>
+
+        <div className="mt-14 text-center">
+          <Button asChild variant="outline" size="lg" className="rounded-full border-primary/30 bg-transparent text-foreground hover:bg-primary hover:text-primary-foreground">
+            <a href="#gallery">See the full menu <ArrowRight className="ml-2 h-4 w-4" /></a>
+          </Button>
+        </div>
+      </section>
+
+      {/* ========================== WHY CHOOSE US =========================== */}
+      <section className="relative py-24 sm:py-32">
+        <SectionHeader eyebrow="Why Tradish" title="Cooked with soul, delivered with care." />
+
+        <div className="mx-auto mt-14 grid max-w-7xl grid-cols-1 gap-6 px-6 sm:grid-cols-2 lg:grid-cols-4 lg:px-8">
+          {whyUs.map(({ icon: Icon, title, desc }, i) => (
+            <motion.div
+              key={title}
+              variants={fadeUp} custom={i}
+              initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.3 }}
+              whileHover={{ y: -6 }}
+              className="group relative overflow-hidden rounded-3xl border border-white/10 bg-card p-8 transition-colors hover:border-primary/40"
+            >
+              <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-primary/10 blur-2xl transition-opacity group-hover:bg-primary/20" />
+              <span className="relative grid h-12 w-12 place-items-center rounded-2xl bg-primary/15 text-primary">
+                <Icon className="h-5 w-5" />
+              </span>
+              <h3 className="relative mt-6 font-display text-xl font-semibold text-foreground">{title}</h3>
+              <p className="relative mt-2 text-sm leading-relaxed text-muted-foreground">{desc}</p>
+            </motion.div>
+          ))}
+        </div>
+      </section>
+
+      {/* =========================== TESTIMONIALS =========================== */}
+      <section className="relative overflow-hidden bg-[oklch(0.14_0.008_60)] py-24 sm:py-32">
+        <SectionHeader eyebrow="Kind Words" title="Loved across Lagos." />
+
+        <div className="relative mt-14 [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]">
+          <div className="marquee-track flex w-max gap-6 px-6">
+            {[...testimonials, ...testimonials].map((t, i) => (
+              <figure
+                key={i}
+                className="w-[340px] flex-none rounded-3xl border border-white/10 bg-card p-7"
+              >
+                <Quote className="h-6 w-6 text-primary/70" />
+                <blockquote className="mt-4 text-sm leading-relaxed text-foreground/85">"{t.text}"</blockquote>
+                <figcaption className="mt-6 flex items-center gap-3">
+                  <img src={t.avatar} alt={t.name} className="h-10 w-10 rounded-full object-cover" />
+                  <div>
+                    <div className="text-sm font-semibold text-foreground">{t.name}</div>
+                    <div className="flex gap-0.5 text-primary">
+                      {Array.from({ length: 5 }).map((_, s) => (
+                        <Star key={s} className="h-3 w-3 fill-primary" />
+                      ))}
+                    </div>
+                  </div>
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* =============================== ABOUT ============================== */}
+      <section id="about" className="relative py-24 sm:py-32">
+        <div className="mx-auto grid max-w-7xl gap-14 px-6 lg:grid-cols-2 lg:items-center lg:gap-20 lg:px-8">
+          <motion.div
+            initial={{ opacity: 0, x: -30 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true, amount: 0.3 }}
+            transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+            className="relative"
+          >
+            <div className="absolute -inset-6 rounded-[2rem] bg-primary/10 blur-3xl" aria-hidden />
+            <div className="relative overflow-hidden rounded-[2rem] border border-white/10">
+              <img src={chefImg} alt="Head chef stirring a pot of jollof rice" loading="lazy" className="aspect-[4/5] w-full object-cover" />
+            </div>
+            <div className="absolute -bottom-6 -right-6 hidden max-w-[220px] rounded-2xl border border-white/10 bg-background/90 p-5 backdrop-blur-xl sm:block">
+              <div className="flex items-center gap-2 text-primary"><Flame className="h-4 w-4" /><span className="text-xs font-semibold uppercase tracking-[0.18em]">25+ Years</span></div>
+              <p className="mt-2 text-sm text-muted-foreground">of feeding families across Lagos.</p>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, x: 30 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true, amount: 0.3 }}
+            transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <span className="text-[11px] font-semibold uppercase tracking-[0.24em] text-primary">Our Story</span>
+            <h2 className="mt-3 font-display text-4xl font-semibold leading-tight text-foreground sm:text-5xl">
+              A family kitchen that grew into a Lagos favourite.
+            </h2>
+            <p className="mt-5 text-muted-foreground">
+              Tradish began in Ikeja — a place where jollof was smoky, egusi was thick, and every plate came with a story.
+              We still cook every dish to order, with recipes passed down three generations.
             </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Button asChild size="lg" className="gap-2 rounded-full bg-primary text-primary-foreground hover:bg-primary/90">
-                <a href="#menu">Order Now <ArrowRight className="h-4 w-4" /></a>
-              </Button>
-              <Button asChild size="lg" variant="outline" className="rounded-full border-primary/20">
-                <a href="#about">Our Story</a>
-              </Button>
-            </div>
-            <div className="mt-10 flex gap-8 text-sm text-muted-foreground">
-              <div className="flex items-center gap-2"><Clock className="h-4 w-4 text-accent" /> 30–45 min delivery</div>
-              <div className="flex items-center gap-2"><MapPin className="h-4 w-4 text-accent" /> Across Lagos</div>
-            </div>
-          </div>
-          <div className="relative">
-            <div className="absolute -inset-4 rounded-3xl bg-accent/20 blur-2xl" aria-hidden />
-            <img src={heroImg} alt="A spread of Nigerian dishes on a wooden dining table" width={1600} height={1200} className="relative aspect-[4/3] w-full rounded-3xl object-cover shadow-2xl" />
-          </div>
+
+            <ol className="mt-10 space-y-6 border-l border-white/10 pl-6">
+              {timeline.map((t) => (
+                <li key={t.year} className="relative">
+                  <span className="absolute -left-[31px] top-1 grid h-4 w-4 place-items-center rounded-full border border-primary bg-background">
+                    <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                  </span>
+                  <div className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">{t.year}</div>
+                  <p className="mt-1 text-sm text-muted-foreground">{t.text}</p>
+                </li>
+              ))}
+            </ol>
+
+            <Button asChild size="lg" className="mt-10 rounded-full bg-primary text-primary-foreground hover:bg-primary/90">
+              <a href="#menu">Taste the tradition <ArrowRight className="ml-2 h-4 w-4" /></a>
+            </Button>
+          </motion.div>
         </div>
       </section>
 
-      <section id="menu" className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
-        <div className="mb-10 text-center">
-          <span className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">The Menu</span>
-          <h2 className="mt-2 font-display text-3xl font-semibold text-primary sm:text-4xl">Cooked fresh, every order</h2>
-          <p className="mx-auto mt-3 max-w-xl text-muted-foreground">Explore our seasonal selection of Nigerian classics.</p>
-        </div>
-        {categories.map((cat) => {
-          const catItems = items.filter((i) => i.category_id === cat.id);
-          if (catItems.length === 0) return null;
-          return (
-            <div key={cat.id} className="mb-14 last:mb-0">
-              <div className="mb-5 flex items-baseline justify-between border-b border-border pb-3">
-                <h3 className="font-display text-2xl font-semibold text-primary">{cat.name}</h3>
-                <span className="text-xs uppercase tracking-wider text-muted-foreground">
-                  {catItems.length} dish{catItems.length === 1 ? "" : "es"}
-                </span>
+      {/* ============================== GALLERY ============================= */}
+      {galleryImgs.length > 0 && (
+        <section id="gallery" className="bg-[oklch(0.14_0.008_60)] py-24 sm:py-32">
+          <SectionHeader eyebrow="@tradish.lagos" title="Straight from the kitchen." />
+          <div className="mx-auto mt-14 max-w-7xl px-6 lg:px-8">
+            <div className="columns-2 gap-4 md:columns-3 lg:columns-4 [column-fill:_balance]">
+              {galleryImgs.map((g, i) => (
+                <motion.div
+                  key={g.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, amount: 0.1 }}
+                  transition={{ duration: 0.6, delay: (i % 4) * 0.08 }}
+                  className="mb-4 break-inside-avoid overflow-hidden rounded-2xl border border-white/10"
+                >
+                  <img
+                    src={g.image_url}
+                    alt={g.name}
+                    loading="lazy"
+                    className="w-full transition-transform duration-[900ms] hover:scale-110"
+                  />
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ================================ CTA ================================ */}
+      <section className="relative overflow-hidden py-24 sm:py-32">
+        <div className="mx-auto max-w-7xl px-6 lg:px-8">
+          <div className="relative overflow-hidden rounded-[2.5rem] border border-primary/20 bg-gradient-to-br from-[oklch(0.22_0.05_55)] via-[oklch(0.18_0.03_55)] to-[oklch(0.14_0.008_60)] p-10 sm:p-16">
+            <div className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-primary/25 blur-3xl" />
+            <div className="pointer-events-none absolute -bottom-24 -left-24 h-80 w-80 rounded-full bg-accent/20 blur-3xl" />
+            <div className="relative grid gap-10 lg:grid-cols-[1.4fr_1fr] lg:items-center">
+              <div>
+                <span className="text-[11px] font-semibold uppercase tracking-[0.24em] text-primary">Craving something?</span>
+                <h2 className="mt-3 font-display text-4xl font-semibold leading-tight text-foreground sm:text-5xl lg:text-6xl">
+                  Hungry already?
+                </h2>
+                <p className="mt-4 max-w-xl text-muted-foreground">
+                  Your next favourite plate is 30 minutes away. Order now and taste why Lagos keeps coming back.
+                </p>
+                <div className="mt-8 flex flex-wrap gap-4">
+                  <Button asChild size="lg" className="h-12 rounded-full bg-primary px-8 text-primary-foreground shadow-xl shadow-primary/30 hover:bg-primary/90">
+                    <a href="#menu">Order Your Meal <ArrowRight className="ml-2 h-4 w-4" /></a>
+                  </Button>
+                  <div className="inline-flex items-center gap-2 rounded-full border border-white/10 px-5 py-2 text-sm text-muted-foreground">
+                    <Clock className="h-4 w-4 text-primary" /> Delivering right now
+                  </div>
+                </div>
               </div>
-              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {catItems.map((item) => (<MenuCard key={item.id} item={item} />))}
+
+              {/* delivery illustration */}
+              <div className="relative hidden lg:block">
+                <motion.div
+                  animate={{ y: [0, -10, 0] }}
+                  transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                  className="relative mx-auto grid h-56 w-56 place-items-center rounded-full border border-primary/30 bg-primary/10 backdrop-blur"
+                >
+                  <Truck className="h-24 w-24 text-primary" strokeWidth={1.25} />
+                </motion.div>
+                <div className="absolute inset-x-0 -bottom-2 mx-auto h-4 w-40 rounded-full bg-black/40 blur-lg" />
               </div>
             </div>
-          );
-        })}
-        {categories.length === 0 && (<p className="py-20 text-center text-muted-foreground">Loading menu…</p>)}
-      </section>
-
-      <section id="about" className="bg-primary/[0.03]">
-        <div className="mx-auto grid max-w-6xl gap-10 px-4 py-16 sm:grid-cols-2 sm:px-6 sm:py-20">
-          <div>
-            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">Our Story</span>
-            <h2 className="mt-2 font-display text-3xl font-semibold text-primary sm:text-4xl">Nigerian food, done properly.</h2>
-          </div>
-          <div className="space-y-4 text-muted-foreground">
-            <p>Tradish began as a family kitchen in Ikeja — a place where jollof was smoky, egusi was thick, and every plate came with a story. Today we still cook every dish to order, using the same recipes passed down three generations.</p>
-            <p>Whether you're calling in from the office, feeding the family, or catering a party, we bring the taste of home to your table.</p>
           </div>
         </div>
       </section>
 
       <SiteFooter />
     </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Small helpers                                                      */
+/* ------------------------------------------------------------------ */
+function SectionHeader({ eyebrow, title, sub }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 24 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.5 }}
+      transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+      className="mx-auto max-w-3xl px-6 text-center"
+    >
+      <span className="text-[11px] font-semibold uppercase tracking-[0.24em] text-primary">{eyebrow}</span>
+      <h2 className="mt-3 font-display text-4xl font-semibold leading-tight text-foreground sm:text-5xl">
+        {title}
+      </h2>
+      {sub && <p className="mx-auto mt-4 max-w-xl text-muted-foreground">{sub}</p>}
+    </motion.div>
   );
 }
