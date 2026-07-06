@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuthUser } from "@/components/protected-route";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, LogOut, Pencil, Plus, Trash2, UtensilsCrossed } from "lucide-react";
+import { Bell, BellOff, Loader2, LogOut, Pencil, Plus, Trash2, UtensilsCrossed } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -103,6 +103,61 @@ function AdminHeader({ email, onSignOut }) {
 }
 function OrdersPanel() {
   const qc = useQueryClient();
+  const [soundOn, setSoundOn] = useState(() => {
+    if (typeof window === "undefined") return true;
+    return localStorage.getItem("tradish_admin_sound") !== "off";
+  });
+  const audioCtxRef = useRef(null);
+  const seenIdsRef = useRef(new Set());
+
+  const ensureCtx = useCallback(() => {
+    if (typeof window === "undefined") return null;
+    if (!audioCtxRef.current) {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return null;
+      audioCtxRef.current = new Ctx();
+    }
+    if (audioCtxRef.current.state === "suspended") {
+      audioCtxRef.current.resume().catch(() => {});
+    }
+    return audioCtxRef.current;
+  }, []);
+
+  const playChime = useCallback(() => {
+    if (!soundOn) return;
+    const ctx = ensureCtx();
+    if (!ctx) return;
+    // Two-tone bell: E5 then A5
+    const notes = [
+      { freq: 659.25, start: 0,    dur: 0.35 },
+      { freq: 880.0,  start: 0.18, dur: 0.55 },
+    ];
+    const now = ctx.currentTime;
+    notes.forEach(({ freq, start, dur }) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.0001, now + start);
+      gain.gain.exponentialRampToValueAtTime(0.28, now + start + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + start + dur);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(now + start);
+      osc.stop(now + start + dur + 0.05);
+    });
+  }, [soundOn, ensureCtx]);
+
+  const toggleSound = () => {
+    const next = !soundOn;
+    setSoundOn(next);
+    localStorage.setItem("tradish_admin_sound", next ? "on" : "off");
+    if (next) {
+      // Unlock audio in same user gesture and preview the chime.
+      ensureCtx();
+      setTimeout(() => playChime(), 60);
+    }
+  };
+
   const { data: orders, isLoading } = useQuery({
     queryKey: ["admin-orders"],
     queryFn: async () => {
@@ -111,6 +166,41 @@ function OrdersPanel() {
     },
     refetchInterval: 15e3
   });
+
+  // Seed the "seen" set once when orders first load so we don't chime for existing history.
+  useEffect(() => {
+    if (!orders || seenIdsRef.current.size > 0) return;
+    orders.forEach((o) => seenIdsRef.current.add(o.id));
+  }, [orders]);
+
+  // Realtime subscription for new orders.
+  useEffect(() => {
+    const channel = supabase
+      .channel("admin-orders-stream")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "orders" },
+        (payload) => {
+          const order = payload.new;
+          if (!order || seenIdsRef.current.has(order.id)) return;
+          seenIdsRef.current.add(order.id);
+          playChime();
+          toast.success("New order received", {
+            description: `${order.order_number ?? "Order"} · ${formatNaira(order.total_ngn ?? 0)}${
+              order.customer_name ? ` · ${order.customer_name}` : ""
+            }`,
+            duration: 8000,
+          });
+          qc.invalidateQueries({ queryKey: ["admin-orders"] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [playChime, qc]);
+
   const updateStatus = async (id, status) => {
     const { error } = await supabase.from("orders").update({ status }).eq("id", id);
     if (error) {
@@ -120,10 +210,33 @@ function OrdersPanel() {
     toast.success("Status updated");
     qc.invalidateQueries({ queryKey: ["admin-orders"] });
   };
-  if (isLoading) return <p className="py-10 text-center text-muted-foreground">Loading orders…</p>;
+
+  const SoundToggle = (
+    <div className="mb-4 flex items-center justify-between rounded-xl border border-border bg-card px-4 py-2.5">
+      <div className="flex items-center gap-2 text-sm">
+        <span className="relative flex h-2 w-2">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-60" />
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
+        </span>
+        <span className="font-medium">Live · listening for new orders</span>
+      </div>
+      <Button
+        size="sm"
+        variant={soundOn ? "default" : "outline"}
+        onClick={toggleSound}
+        className="gap-1.5 rounded-full"
+      >
+        {soundOn ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
+        Sound {soundOn ? "on" : "off"}
+      </Button>
+    </div>
+  );
+
+  if (isLoading) return <>{SoundToggle}<p className="py-10 text-center text-muted-foreground">Loading orders…</p></>;
   if (!orders || orders.length === 0)
-    return <p className="py-16 text-center text-muted-foreground">No orders yet.</p>;
+    return <>{SoundToggle}<p className="py-16 text-center text-muted-foreground">No orders yet.</p></>;
   return <div className="space-y-4">
+      {SoundToggle}
       {orders.map((o) => <div key={o.id} className="rounded-2xl border border-border bg-card p-5">
           <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 sm:flex sm:items-center sm:justify-between">
             <div className="min-w-0">
