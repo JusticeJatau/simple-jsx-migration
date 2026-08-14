@@ -1,7 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
-import { ArrowLeft, Loader2, CreditCard } from "lucide-react";
+import { ArrowLeft, Loader2, CreditCard, MapPin } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -9,16 +9,23 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SiteHeader } from "@/components/site-header";
 import { useCart } from "@/lib/cart.jsx";
 import { formatNaira } from "@/lib/format";
-
-const DELIVERY_FEE = 1500;
+import {
+  CUSTOM_LOCATION_VALUE,
+  resolveDeliveryFee,
+  useDeliveryLocations,
+  useDeliveryRegions,
+} from "@/lib/delivery";
 
 const schema = z.object({
   customer_name: z.string().trim().min(2, "Please enter your full name").max(100),
   customer_phone: z.string().trim().min(7, "Enter a valid phone number").max(20).regex(/^[+\d\s-]+$/, "Numbers only"),
   delivery_address: z.string().trim().min(6, "Please enter a delivery address").max(300),
+  landmark: z.string().trim().max(160).optional().default(""),
+  custom_location: z.string().trim().max(160).optional().default(""),
   notes: z.string().trim().max(500).optional().default(""),
 });
 
@@ -26,20 +33,64 @@ export default function Checkout() {
   const navigate = useNavigate();
   const { items, subtotal, clear } = useCart();
   const [submitting, setSubmitting] = useState(false);
-  const [form, setForm] = useState({ customer_name: "", customer_phone: "", delivery_address: "", notes: "" });
-  const total = useMemo(() => subtotal + (items.length ? DELIVERY_FEE : 0), [subtotal, items.length]);
+  const [regionId, setRegionId] = useState("");
+  const [locationValue, setLocationValue] = useState("");
+  const [form, setForm] = useState({
+    customer_name: "",
+    customer_phone: "",
+    delivery_address: "",
+    landmark: "",
+    custom_location: "",
+    notes: "",
+  });
+
+  const { data: regions = [], isLoading: regionsLoading } = useDeliveryRegions();
+  const { data: locations = [], isLoading: locationsLoading } = useDeliveryLocations(regionId);
+
+  useEffect(() => {
+    if (!regionId && regions.length) setRegionId(regions[0].id);
+  }, [regions, regionId]);
+
+  const region = regions.find((r) => r.id === regionId) ?? null;
+  const isCustom = locationValue === CUSTOM_LOCATION_VALUE;
+  const location = isCustom ? null : locations.find((l) => l.id === locationValue) ?? null;
+  const hasLocation = isCustom || !!location;
+
+  const deliveryFee = useMemo(
+    () => (hasLocation ? resolveDeliveryFee({ region, location, isCustom }) : 0),
+    [region, location, isCustom, hasLocation],
+  );
+  const total = subtotal + (items.length ? deliveryFee : 0);
 
   const onSubmit = async (e) => {
     e.preventDefault();
     if (items.length === 0) { toast.error("Your cart is empty"); return; }
+    if (!region) { toast.error("Please select a delivery region"); return; }
+    if (!hasLocation) { toast.error("Please select your delivery area"); return; }
     const parsed = schema.safeParse(form);
     if (!parsed.success) { toast.error(parsed.error.issues[0]?.message ?? "Please check the form"); return; }
+    if (isCustom && !parsed.data.custom_location) { toast.error("Please enter your custom area or neighbourhood"); return; }
+
     setSubmitting(true);
     try {
       const paymentReference = "PSK_PLACEHOLDER_" + Date.now();
       const { data: order, error: orderErr } = await supabase
         .from("orders")
-        .insert({ ...parsed.data, subtotal_ngn: subtotal, delivery_fee_ngn: DELIVERY_FEE, total_ngn: total, payment_reference: paymentReference })
+        .insert({
+          customer_name: parsed.data.customer_name,
+          customer_phone: parsed.data.customer_phone,
+          delivery_address: parsed.data.delivery_address,
+          landmark: parsed.data.landmark || null,
+          notes: parsed.data.notes,
+          delivery_region_id: region.id,
+          delivery_location_id: isCustom ? null : location.id,
+          custom_location: isCustom ? parsed.data.custom_location : null,
+          subtotal_ngn: subtotal,
+          // The database trigger recomputes these authoritatively.
+          delivery_fee_ngn: deliveryFee,
+          total_ngn: total,
+          payment_reference: paymentReference,
+        })
         .select()
         .single();
       if (orderErr || !order) throw orderErr ?? new Error("Failed to place order");
@@ -54,11 +105,17 @@ export default function Checkout() {
       navigate(`/order/${order.id}`);
     } catch (err) {
       console.error(err);
-      toast.error("Could not place your order. Please try again.");
+      toast.error(err?.message || "Could not place your order. Please try again.");
     } finally {
       setSubmitting(false);
     }
   };
+
+  const deliveryLabel = isCustom
+    ? `Custom delivery — ${formatNaira(deliveryFee)}`
+    : location
+      ? `Delivery to ${location.name} — ${formatNaira(deliveryFee)}`
+      : null;
 
   return (
     <div className="min-h-screen bg-background">
@@ -77,22 +134,85 @@ export default function Checkout() {
           </div>
         ) : (
           <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_360px]">
-            <form onSubmit={onSubmit} className="space-y-5 rounded-2xl border border-border bg-card p-6">
-              <div className="space-y-1.5">
-                <Label htmlFor="name">Full name</Label>
-                <Input id="name" value={form.customer_name} onChange={(e) => setForm({ ...form, customer_name: e.target.value })} placeholder="Adaeze Okonkwo" required />
+            <form onSubmit={onSubmit} className="space-y-6 rounded-2xl border border-border bg-card p-6">
+              <div className="space-y-5">
+                <div className="space-y-1.5">
+                  <Label htmlFor="name">Full name</Label>
+                  <Input id="name" className="h-12" value={form.customer_name} onChange={(e) => setForm({ ...form, customer_name: e.target.value })} placeholder="Adaeze Okonkwo" required />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="phone">Phone number</Label>
+                  <Input id="phone" className="h-12" type="tel" value={form.customer_phone} onChange={(e) => setForm({ ...form, customer_phone: e.target.value })} placeholder="+234 800 000 0000" required />
+                </div>
               </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="phone">Phone number</Label>
-                <Input id="phone" type="tel" value={form.customer_phone} onChange={(e) => setForm({ ...form, customer_phone: e.target.value })} placeholder="+234 800 000 0000" required />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="address">Delivery address</Label>
-                <Textarea id="address" value={form.delivery_address} onChange={(e) => setForm({ ...form, delivery_address: e.target.value })} placeholder="12 Awolowo Way, Ikeja, Lagos" rows={2} required />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="notes">Order notes (optional)</Label>
-                <Textarea id="notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Extra pepper, no plantain, gate code…" rows={2} />
+
+              <div className="space-y-5 border-t border-border pt-6">
+                <p className="text-xs uppercase tracking-wider text-muted-foreground">Delivery information</p>
+
+                <div className="space-y-1.5">
+                  <Label>Delivery region</Label>
+                  <Select
+                    value={regionId}
+                    onValueChange={(v) => { setRegionId(v); setLocationValue(""); }}
+                    disabled={regionsLoading || regions.length === 0}
+                  >
+                    <SelectTrigger className="h-12"><SelectValue placeholder={regionsLoading ? "Loading regions…" : "Select region"} /></SelectTrigger>
+                    <SelectContent>
+                      {regions.map((r) => (
+                        <SelectItem key={r.id} value={r.id}>{r.name}{r.state ? ` · ${r.state}` : ""}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label>Select your area</Label>
+                  <Select value={locationValue} onValueChange={setLocationValue} disabled={!regionId || locationsLoading}>
+                    <SelectTrigger className="h-12"><SelectValue placeholder={locationsLoading ? "Loading areas…" : "Select your area"} /></SelectTrigger>
+                    <SelectContent>
+                      {locations.map((l) => (
+                        <SelectItem key={l.id} value={l.id}>{l.name} · {formatNaira(l.delivery_fee_ngn)}</SelectItem>
+                      ))}
+                      <SelectItem value={CUSTOM_LOCATION_VALUE}>Other / Custom location</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {!isCustom && (
+                    <p className="pt-1 text-xs text-muted-foreground">
+                      Can&apos;t find your location?{" "}
+                      <button type="button" onClick={() => setLocationValue(CUSTOM_LOCATION_VALUE)} className="font-medium text-accent underline underline-offset-4">
+                        Use a custom location
+                      </button>
+                    </p>
+                  )}
+                </div>
+
+                {isCustom && (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="custom">Custom area / location</Label>
+                    <Input id="custom" className="h-12" value={form.custom_location} onChange={(e) => setForm({ ...form, custom_location: e.target.value })} placeholder="Enter your area or neighborhood" />
+                  </div>
+                )}
+
+                {deliveryLabel && (
+                  <div className="flex items-center gap-2 rounded-xl border border-accent/40 bg-accent/5 px-4 py-3 text-sm font-medium text-primary">
+                    <MapPin className="h-4 w-4 shrink-0 text-accent" /> {deliveryLabel}
+                  </div>
+                )}
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="address">Delivery address</Label>
+                  <Textarea id="address" value={form.delivery_address} onChange={(e) => setForm({ ...form, delivery_address: e.target.value })} placeholder="Enter your house/building address, street, landmark, bus stop, or any useful directions for the rider." rows={4} required />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="landmark">Landmark / bus stop (optional)</Label>
+                  <Input id="landmark" className="h-12" value={form.landmark} onChange={(e) => setForm({ ...form, landmark: e.target.value })} placeholder="e.g. Opposite YSU main gate" />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="notes">Order notes (optional)</Label>
+                  <Textarea id="notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Extra pepper, no plantain, gate code…" rows={2} />
+                </div>
               </div>
 
               <div className="rounded-xl border border-dashed border-accent/40 bg-accent/5 p-4">
@@ -104,7 +224,7 @@ export default function Checkout() {
                 </p>
               </div>
 
-              <Button type="submit" disabled={submitting} className="w-full rounded-full bg-primary text-primary-foreground hover:bg-primary/90" size="lg">
+              <Button type="submit" disabled={submitting} className="h-12 w-full rounded-full bg-primary text-primary-foreground hover:bg-primary/90" size="lg">
                 {submitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Placing order…</> : `Pay ${formatNaira(total)}`}
               </Button>
             </form>
@@ -121,7 +241,10 @@ export default function Checkout() {
               </ul>
               <div className="mt-5 space-y-2 border-t border-border pt-4 text-sm">
                 <div className="flex justify-between text-muted-foreground"><span>Subtotal</span><span>{formatNaira(subtotal)}</span></div>
-                <div className="flex justify-between text-muted-foreground"><span>Delivery</span><span>{formatNaira(DELIVERY_FEE)}</span></div>
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Delivery{isCustom ? " · custom" : location ? ` · ${location.name}` : ""}</span>
+                  <span>{hasLocation ? formatNaira(deliveryFee) : "Select area"}</span>
+                </div>
                 <div className="flex justify-between border-t border-border pt-3 font-display text-lg font-semibold text-primary"><span>Total</span><span>{formatNaira(total)}</span></div>
               </div>
             </aside>
