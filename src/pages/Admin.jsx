@@ -164,14 +164,34 @@ function OrdersPanel() {
       const { data } = await supabase.from("orders").select("*, order_items(*)").order("created_at", { ascending: false });
       return data ?? [];
     },
-    refetchInterval: 15e3
+    refetchInterval: 1e4,
+    refetchIntervalInBackground: true
   });
 
-  // Seed the "seen" set once when orders first load so we don't chime for existing history.
+  const seededRef = useRef(false);
+
+  // Seed once with existing history, then chime for anything new that shows up
+  // in a poll (fallback in case realtime isn't enabled on the orders table).
   useEffect(() => {
-    if (!orders || seenIdsRef.current.size > 0) return;
-    orders.forEach((o) => seenIdsRef.current.add(o.id));
-  }, [orders]);
+    if (!orders) return;
+    if (!seededRef.current) {
+      orders.forEach((o) => seenIdsRef.current.add(o.id));
+      seededRef.current = true;
+      return;
+    }
+    const fresh = orders.filter((o) => !seenIdsRef.current.has(o.id));
+    if (fresh.length === 0) return;
+    fresh.forEach((o) => seenIdsRef.current.add(o.id));
+    playChime();
+    fresh.forEach((o) => {
+      toast.success("New delivery order", {
+        description: `${o.order_number ?? "Order"} · ${formatNaira(o.total_ngn ?? 0)}${
+          o.customer_name ? ` · ${o.customer_name}` : ""
+        }`,
+        duration: 8000
+      });
+    });
+  }, [orders, playChime]);
 
   // Realtime subscription for new orders.
   useEffect(() => {
@@ -185,7 +205,7 @@ function OrdersPanel() {
           if (!order || seenIdsRef.current.has(order.id)) return;
           seenIdsRef.current.add(order.id);
           playChime();
-          toast.success("New order received", {
+          toast.success("New delivery order", {
             description: `${order.order_number ?? "Order"} · ${formatNaira(order.total_ngn ?? 0)}${
               order.customer_name ? ` · ${order.customer_name}` : ""
             }`,
