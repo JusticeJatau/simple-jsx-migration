@@ -26,6 +26,7 @@ import {
   SelectValue
 } from "@/components/ui/select";
 import { OrderStatusBadge } from "@/components/order-status-badge";
+import { DeliveryPanel } from "@/components/admin/delivery-panel";
 import { formatNaira, statusLabel } from "@/lib/format";
 const STATUSES = ["pending", "preparing", "ready", "out_for_delivery", "completed", "cancelled"];
 function AdminPage() {
@@ -78,9 +79,11 @@ VALUES ('${user.id}', 'admin');`}
           <TabsList>
             <TabsTrigger value="orders">Orders</TabsTrigger>
             <TabsTrigger value="menu">Menu</TabsTrigger>
+            <TabsTrigger value="delivery">Delivery</TabsTrigger>
           </TabsList>
           <TabsContent value="orders" className="mt-6"><OrdersPanel /></TabsContent>
           <TabsContent value="menu" className="mt-6"><MenuPanel /></TabsContent>
+          <TabsContent value="delivery" className="mt-6"><DeliveryPanel /></TabsContent>
         </Tabs>
       </div>
     </div>;
@@ -282,9 +285,32 @@ function OrdersPanel() {
               <p className="text-muted-foreground">{o.customer_phone}</p>
             </div>
             <div className="text-sm sm:col-span-2">
-              <p className="text-xs uppercase tracking-wider text-muted-foreground">Deliver to</p>
-              <p className="mt-1">{o.delivery_address}</p>
-              {o.notes && <p className="mt-1 text-muted-foreground">Note: {o.notes}</p>}
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">Delivery information</p>
+              <dl className="mt-2 grid gap-x-6 gap-y-2 sm:grid-cols-2">
+                <div>
+                  <dt className="text-xs text-muted-foreground">Region</dt>
+                  <dd className="font-medium">{o.delivery_region_name ?? "\u2014"}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-muted-foreground">Area</dt>
+                  <dd className="font-medium">{o.custom_location ?? o.delivery_location_name ?? "\u2014"}</dd>
+                </div>
+                <div className="sm:col-span-2">
+                  <dt className="text-xs text-muted-foreground">Address</dt>
+                  <dd className="select-all whitespace-pre-wrap">{o.delivery_address}</dd>
+                </div>
+                {o.landmark && (
+                  <div className="sm:col-span-2">
+                    <dt className="text-xs text-muted-foreground">Landmark</dt>
+                    <dd className="select-all">{o.landmark}</dd>
+                  </div>
+                )}
+                <div>
+                  <dt className="text-xs text-muted-foreground">Delivery fee</dt>
+                  <dd className="font-medium">{formatNaira(o.delivery_fee_ngn ?? 0)}</dd>
+                </div>
+              </dl>
+              {o.notes && <p className="mt-2 text-muted-foreground">Note: {o.notes}</p>}
             </div>
           </div>
           <ul className="mt-4 divide-y divide-border rounded-lg border border-border bg-background text-sm">

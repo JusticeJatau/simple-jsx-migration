@@ -52,7 +52,18 @@ export default function Order() {
               <dl className="mt-4 space-y-3 text-sm">
                 <div className="flex gap-3"><User className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" /><span>{data.order.customer_name}</span></div>
                 <div className="flex gap-3"><Phone className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" /><span>{data.order.customer_phone}</span></div>
-                <div className="flex gap-3"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" /><span>{data.order.delivery_address}</span></div>
+                <div className="flex gap-3">
+                  <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                  <span>
+                    {(data.order.delivery_region_name || data.order.delivery_location_name) && (
+                      <span className="block font-medium">
+                        {[data.order.delivery_region_name, data.order.custom_location ?? data.order.delivery_location_name].filter(Boolean).join(" · ")}
+                      </span>
+                    )}
+                    {data.order.delivery_address}
+                    {data.order.landmark && <span className="block text-muted-foreground">Landmark: {data.order.landmark}</span>}
+                  </span>
+                </div>
                 {data.order.notes && (<div className="rounded-lg bg-muted p-3 text-muted-foreground">Note: {data.order.notes}</div>)}
               </dl>
             </section>
