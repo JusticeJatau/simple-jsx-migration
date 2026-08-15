@@ -9,7 +9,7 @@ import Auth from "@/pages/Auth.jsx";
 import Checkout from "@/pages/Checkout.jsx";
 import Order from "@/pages/Order.jsx";
 import Admin from "@/pages/Admin.jsx";
-import PaymentSuccess from "./pages/PaymentSuccess.jsx";
+import PaymentSuccess from "@/pages/PaymentSuccess.jsx";
 import NotFound from "@/pages/NotFound.jsx";
 import ProtectedRoute from "@/components/protected-route.jsx";
 
