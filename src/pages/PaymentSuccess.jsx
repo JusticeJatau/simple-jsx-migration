@@ -87,7 +87,7 @@ function PaymentSuccess() {
     );
   }
 
-  const paid = order.status === "paid";
+  const paid = order.payment_status === "paid";
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
