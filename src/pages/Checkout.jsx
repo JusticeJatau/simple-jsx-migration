@@ -37,6 +37,7 @@ export default function Checkout() {
   const [locationValue, setLocationValue] = useState("");
   const [form, setForm] = useState({
     customer_name: "",
+    customer_email: "",
     customer_phone: "",
     delivery_address: "",
     landmark: "",
@@ -64,16 +65,47 @@ export default function Checkout() {
 
   const onSubmit = async (e) => {
     e.preventDefault();
-    if (items.length === 0) { toast.error("Your cart is empty"); return; }
-    if (!region) { toast.error("Please select a delivery region"); return; }
-    if (!hasLocation) { toast.error("Please select your delivery area"); return; }
+
+    if (items.length === 0) {
+      toast.error("Your cart is empty");
+      return;
+    }
+
+    if (!region) {
+      toast.error("Please select a delivery region");
+      return;
+    }
+
+    if (!hasLocation) {
+      toast.error("Please select your delivery area");
+      return;
+    }
+
     const parsed = schema.safeParse(form);
-    if (!parsed.success) { toast.error(parsed.error.issues[0]?.message ?? "Please check the form"); return; }
-    if (isCustom && !parsed.data.custom_location) { toast.error("Please enter your custom area or neighbourhood"); return; }
+
+    if (!parsed.success) {
+      toast.error(
+        parsed.error.issues[0]?.message ?? "Please check the form"
+      );
+      return;
+    }
+
+    if (isCustom && !parsed.data.custom_location) {
+      toast.error("Please enter your custom area or neighbourhood");
+      return;
+    }
 
     setSubmitting(true);
+
     try {
-      const paymentReference = "PSK_PLACEHOLDER_" + Date.now();
+      /*
+      * 1. Create the order.
+      *
+      * We initially provide the delivery information and subtotal.
+      * Your database trigger remains the authority for the final
+      * delivery fee and total.
+      */
+
       const { data: order, error: orderErr } = await supabase
         .from("orders")
         .insert({
@@ -82,30 +114,112 @@ export default function Checkout() {
           delivery_address: parsed.data.delivery_address,
           landmark: parsed.data.landmark || null,
           notes: parsed.data.notes,
+
           delivery_region_id: region.id,
-          delivery_location_id: isCustom ? null : location.id,
-          custom_location: isCustom ? parsed.data.custom_location : null,
+
+          delivery_location_id: isCustom
+            ? null
+            : location.id,
+
+          custom_location: isCustom
+            ? parsed.data.custom_location
+            : null,
+
           subtotal_ngn: subtotal,
-          // The database trigger recomputes these authoritatively.
+
+          // Database trigger calculates the authoritative values.
           delivery_fee_ngn: deliveryFee,
           total_ngn: total,
-          payment_reference: paymentReference,
         })
         .select()
         .single();
-      if (orderErr || !order) throw orderErr ?? new Error("Failed to place order");
 
-      const { error: itemsErr } = await supabase.from("order_items").insert(
-        items.map((i) => ({ order_id: order.id, menu_item_id: i.id, name: i.name, price_ngn: i.price, quantity: i.quantity })),
-      );
-      if (itemsErr) throw itemsErr;
+      if (orderErr || !order) {
+        throw orderErr ?? new Error("Failed to create order");
+      }
 
-      clear();
-      toast.success("Order placed!");
-      navigate(`/order/${order.id}`);
+      /*
+      * 2. Create the order items.
+      */
+
+      const { error: itemsErr } = await supabase
+        .from("order_items")
+        .insert(
+          items.map((i) => ({
+            order_id: order.id,
+            menu_item_id: i.id,
+            name: i.name,
+            price_ngn: i.price,
+            quantity: i.quantity,
+          }))
+        );
+
+      if (itemsErr) {
+        throw itemsErr;
+      }
+
+      /*
+      * 3. Ask our Supabase Edge Function to initialize
+      *    the Paystack transaction.
+      *
+      * IMPORTANT:
+      * The Paystack secret key stays inside the Edge Function.
+      */
+
+      const { data: payment, error: paymentError } =
+        await supabase.functions.invoke(
+          "paystack-initialize",
+          {
+            body: {
+              order_id: order.id,
+            },
+          }
+        );
+
+      if (paymentError) {
+        throw paymentError;
+      }
+
+      if (!payment?.success) {
+        throw new Error(
+          payment?.message || "Could not initialize payment"
+        );
+      }
+
+      /*
+      * 4. Save the payment reference returned by Paystack.
+      */
+
+      const { error: updateError } = await supabase
+        .from("orders")
+        .update({
+          payment_reference: payment.payment_reference,
+        })
+        .eq("id", order.id);
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      /*
+      * 5. NOW open Paystack.
+      */
+
+      if (!payment.authorization_url) {
+        throw new Error(
+          "Paystack did not return an authorization URL"
+        );
+      }
+
+      window.location.href = payment.authorization_url;
+
     } catch (err) {
-      console.error(err);
-      toast.error(err?.message || "Could not place your order. Please try again.");
+      console.error("Checkout error:", err);
+
+      toast.error(
+        err?.message ||
+          "Could not initialize payment. Please try again."
+      );
     } finally {
       setSubmitting(false);
     }
@@ -143,6 +257,23 @@ export default function Checkout() {
                 <div className="space-y-1.5">
                   <Label htmlFor="phone">Phone number</Label>
                   <Input id="phone" className="h-12" type="tel" value={form.customer_phone} onChange={(e) => setForm({ ...form, customer_phone: e.target.value })} placeholder="+234 800 000 0000" required />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="email">Email address</Label>
+                  <Input
+                    id="email"
+                    className="h-12"
+                    type="email"
+                    value={form.customer_email}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        customer_email: e.target.value,
+                      })
+                    }
+                    placeholder="you@example.com"
+                    required
+                  />
                 </div>
               </div>
 
@@ -220,7 +351,7 @@ export default function Checkout() {
                   <CreditCard className="h-4 w-4 text-accent" /> Payment via Paystack
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Real Paystack checkout will open here. For now we save your order and issue a placeholder reference.
+                  You’ll be securely redirected to Paystack to complete your payment.
                 </p>
               </div>
 
