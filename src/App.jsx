@@ -9,6 +9,7 @@ import Auth from "@/pages/Auth.jsx";
 import Checkout from "@/pages/Checkout.jsx";
 import Order from "@/pages/Order.jsx";
 import Admin from "@/pages/Admin.jsx";
+import PaymentSuccess from "@/pages/PaymentSuccess.jsx";
 import NotFound from "@/pages/NotFound.jsx";
 import ProtectedRoute from "@/components/protected-route.jsx";
 
@@ -23,6 +24,7 @@ export default function App() {
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/checkout" element={<Checkout />} />
+            
             <Route path="/order/:id" element={<Order />} />
             <Route
               path="/admin"
@@ -31,6 +33,10 @@ export default function App() {
                   <Admin />
                 </ProtectedRoute>
               }
+            />
+            <Route
+              path="/payment-success"
+              element={<PaymentSuccess />}
             />
             <Route path="*" element={<NotFound />} />
           </Routes>
