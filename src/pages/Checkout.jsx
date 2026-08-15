@@ -22,6 +22,7 @@ import {
 
 const schema = z.object({
   customer_name: z.string().trim().min(2, "Please enter your full name").max(100),
+  customer_email: z.string().trim().email("Enter a valid email address").max(150),
   customer_phone: z.string().trim().min(7, "Enter a valid phone number").max(20).regex(/^[+\d\s-]+$/, "Numbers only"),
   delivery_address: z.string().trim().min(6, "Please enter a delivery address").max(300),
   landmark: z.string().trim().max(160).optional().default(""),
@@ -64,166 +65,149 @@ export default function Checkout() {
   const total = subtotal + (items.length ? deliveryFee : 0);
 
   const onSubmit = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    if (items.length === 0) {
-      toast.error("Your cart is empty");
-      return;
-    }
+  if (items.length === 0) {
+    toast.error("Your cart is empty");
+    return;
+  }
 
-    if (!region) {
-      toast.error("Please select a delivery region");
-      return;
-    }
+  if (!region) {
+    toast.error("Please select a delivery region");
+    return;
+  }
 
-    if (!hasLocation) {
-      toast.error("Please select your delivery area");
-      return;
-    }
+  if (!hasLocation) {
+    toast.error("Please select your delivery area");
+    return;
+  }
 
-    const parsed = schema.safeParse(form);
+  const parsed = schema.safeParse(form);
 
-    if (!parsed.success) {
-      toast.error(
-        parsed.error.issues[0]?.message ?? "Please check the form"
+  if (!parsed.success) {
+    toast.error(
+      parsed.error.issues[0]?.message ??
+        "Please check the form"
+    );
+    return;
+  }
+
+  if (
+    isCustom &&
+    !parsed.data.custom_location
+  ) {
+    toast.error(
+      "Please enter your custom area or neighbourhood"
+    );
+    return;
+  }
+
+  setSubmitting(true);
+
+  try {
+    // --------------------------------------------------
+    // 1. Ask the Supabase Edge Function to create
+    //    the order AND initialize Paystack.
+    // --------------------------------------------------
+
+    const { data: payment, error } =
+      await supabase.functions.invoke(
+        "paystack-initialize",
+        {
+          body: {
+            customer_name:
+              parsed.data.customer_name,
+
+            customer_email:
+              parsed.data.customer_email,
+
+            customer_phone:
+              parsed.data.customer_phone,
+
+            delivery_address:
+              parsed.data.delivery_address,
+
+            landmark:
+              parsed.data.landmark || "",
+
+            notes:
+              parsed.data.notes || "",
+
+            delivery_region_id:
+              region.id,
+
+            delivery_location_id:
+              isCustom
+                ? null
+                : location.id,
+
+            custom_location:
+              isCustom
+                ? parsed.data.custom_location
+                : null,
+
+            items: items.map((item) => ({
+              menu_item_id: item.id,
+              quantity: item.quantity,
+            })),
+          },
+        }
       );
-      return;
-    }
 
-    if (isCustom && !parsed.data.custom_location) {
-      toast.error("Please enter your custom area or neighbourhood");
-      return;
-    }
+    // --------------------------------------------------
+    // 2. Check whether the Edge Function succeeded.
+    // --------------------------------------------------
 
-    setSubmitting(true);
-
-    try {
-      /*
-      * 1. Create the order.
-      *
-      * We initially provide the delivery information and subtotal.
-      * Your database trigger remains the authority for the final
-      * delivery fee and total.
-      */
-
-      const { data: order, error: orderErr } = await supabase
-        .from("orders")
-        .insert({
-          customer_name: parsed.data.customer_name,
-          customer_phone: parsed.data.customer_phone,
-          delivery_address: parsed.data.delivery_address,
-          landmark: parsed.data.landmark || null,
-          notes: parsed.data.notes,
-
-          delivery_region_id: region.id,
-
-          delivery_location_id: isCustom
-            ? null
-            : location.id,
-
-          custom_location: isCustom
-            ? parsed.data.custom_location
-            : null,
-
-          subtotal_ngn: subtotal,
-
-          // Database trigger calculates the authoritative values.
-          delivery_fee_ngn: deliveryFee,
-          total_ngn: total,
-        })
-        .select()
-        .single();
-
-      if (orderErr || !order) {
-        throw orderErr ?? new Error("Failed to create order");
-      }
-
-      /*
-      * 2. Create the order items.
-      */
-
-      const { error: itemsErr } = await supabase
-        .from("order_items")
-        .insert(
-          items.map((i) => ({
-            order_id: order.id,
-            menu_item_id: i.id,
-            name: i.name,
-            price_ngn: i.price,
-            quantity: i.quantity,
-          }))
-        );
-
-      if (itemsErr) {
-        throw itemsErr;
-      }
-
-      /*
-      * 3. Ask our Supabase Edge Function to initialize
-      *    the Paystack transaction.
-      *
-      * IMPORTANT:
-      * The Paystack secret key stays inside the Edge Function.
-      */
-
-      const { data: payment, error: paymentError } =
-        await supabase.functions.invoke(
-          "paystack-initialize",
-          {
-            body: {
-              order_id: order.id,
-            },
-          }
-        );
-
-      if (paymentError) {
-        throw paymentError;
-      }
-
-      if (!payment?.success) {
-        throw new Error(
-          payment?.message || "Could not initialize payment"
-        );
-      }
-
-      /*
-      * 4. Save the payment reference returned by Paystack.
-      */
-
-      const { error: updateError } = await supabase
-        .from("orders")
-        .update({
-          payment_reference: payment.payment_reference,
-        })
-        .eq("id", order.id);
-
-      if (updateError) {
-        throw updateError;
-      }
-
-      /*
-      * 5. NOW open Paystack.
-      */
-
-      if (!payment.authorization_url) {
-        throw new Error(
-          "Paystack did not return an authorization URL"
-        );
-      }
-
-      window.location.href = payment.authorization_url;
-
-    } catch (err) {
-      console.error("Checkout error:", err);
-
-      toast.error(
-        err?.message ||
-          "Could not initialize payment. Please try again."
+    if (error) {
+      console.error(
+        "Initialize payment error:",
+        error
       );
-    } finally {
-      setSubmitting(false);
+
+      throw new Error(
+        error.message ||
+          "Could not initialize payment"
+      );
     }
-  };
+
+    if (!payment?.success) {
+      throw new Error(
+        payment?.error ||
+          "Could not initialize Paystack payment"
+      );
+    }
+
+    // --------------------------------------------------
+    // 3. Make sure Paystack gave us a checkout URL.
+    // --------------------------------------------------
+
+    if (!payment.authorization_url) {
+      throw new Error(
+        "Paystack did not return a checkout URL"
+      );
+    }
+
+    // --------------------------------------------------
+    // 4. Send the customer to Paystack.
+    // --------------------------------------------------
+
+    window.location.href =
+      payment.authorization_url;
+
+  } catch (err) {
+    console.error(
+      "Checkout error:",
+      err
+    );
+
+    toast.error(
+      err?.message ||
+        "Could not start payment. Please try again."
+    );
+
+    setSubmitting(false);
+  }
+};
 
   const deliveryLabel = isCustom
     ? `Custom delivery — ${formatNaira(deliveryFee)}`
