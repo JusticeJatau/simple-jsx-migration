@@ -164,7 +164,7 @@ function OrdersPanel() {
   const { data: orders, isLoading } = useQuery({
     queryKey: ["admin-orders"],
     queryFn: async () => {
-      const { data } = await supabase.from("orders").select("*, order_items(*)").order("created_at", { ascending: false });
+      const { data } = await supabase.from("orders").select("*, order_items(*)").eq("payment_status", "paid").order("created_at", { ascending: false });
       return data ?? [];
     },
     refetchInterval: 1e4,
