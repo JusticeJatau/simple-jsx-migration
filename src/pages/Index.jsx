@@ -112,8 +112,9 @@ export default function Index() {
             alt="A cinematic spread of Nigerian dishes"
             className="h-full w-full object-cover"
           />
+          <div className="absolute inset-0 bg-black/20 dark:bg-black/35" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent dark:from-black/80 dark:via-black/35" />
-          <div className="absolute inset-0 bg-gradient-to-b from-secondary/95 via-secondary/80 to-secondary/55 dark:from-black/90 dark:via-black/75 dark:to-black/45 sm:hidden" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/90 via-black/70 to-black/40 sm:hidden" />
           <svg
             aria-hidden="true"
             viewBox="0 0 112 900"
@@ -148,15 +149,15 @@ export default function Index() {
           >
             <motion.span
               variants={fadeUp} custom={0}
-              className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.25em] text-primary"
+              className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.25em] text-accent sm:text-primary"
             >
-              <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+              <span className="h-1.5 w-1.5 rounded-full bg-accent sm:bg-primary" />
               Authentic Nigerian Cuisine
             </motion.span>
 
             <motion.h1
               variants={fadeUp} custom={1}
-              className="mt-5 font-display text-5xl font-semibold leading-[0.98] tracking-tight text-foreground sm:text-6xl md:text-7xl lg:text-[80px]"
+              className="mt-5 font-display text-5xl font-semibold leading-[0.98] tracking-tight text-primary-foreground sm:text-foreground sm:text-6xl md:text-7xl lg:text-[80px]"
             >
               Every Plate <br className="hidden sm:block" />
               Tells a <span className="italic text-primary">Story.</span>
@@ -164,7 +165,7 @@ export default function Index() {
 
             <motion.p
               variants={fadeUp} custom={2}
-              className="mt-6 max-w-xl text-base leading-relaxed text-foreground/80 sm:text-lg"
+              className="mt-6 max-w-xl text-base leading-relaxed text-primary-foreground/85 sm:text-foreground/80 sm:text-lg"
             >
               From smoky party jollof to slow-simmered egusi — we bring you generations
               of Nigerian flavour, cooked fresh and delivered to your door.
@@ -177,7 +178,7 @@ export default function Index() {
                   <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                 </a>
               </Button>
-              <Button asChild variant="outline" size="lg" className="h-12 rounded-full border-foreground/40 bg-background/65 px-7 text-foreground backdrop-blur hover:border-primary hover:bg-primary/5 hover:text-primary">
+              <Button asChild variant="outline" size="lg" className="h-12 rounded-full border-primary-foreground/55 bg-black/20 px-7 text-primary-foreground backdrop-blur hover:border-primary hover:bg-primary/90 hover:text-primary-foreground sm:border-foreground/40 sm:bg-background/65 sm:text-foreground sm:hover:bg-primary/5 sm:hover:text-primary">
                 <a href="#menu">Browse Menu</a>
               </Button>
             </motion.div>
@@ -200,8 +201,8 @@ export default function Index() {
                     <Icon className="h-5 w-5" />
                   </span>
                   <div>
-                    <div className="font-display text-lg font-semibold text-foreground">{label}</div>
-                    <div className="text-xs text-muted-foreground">{sub}</div>
+                    <div className="font-display text-lg font-semibold text-primary-foreground sm:text-foreground">{label}</div>
+                    <div className="text-xs text-primary-foreground/70 sm:text-muted-foreground">{sub}</div>
                   </div>
                 </div>
               ))}
