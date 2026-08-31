@@ -6,7 +6,7 @@ import {
   ChefHat, Plus, Quote,
 } from "lucide-react";
 
-import heroImg from "@/assets/hero-feast.jpg";
+import heroImg from "@/assets/hero-feast.png";
 import chefImg from "@/assets/chef.jpg";
 import catRice from "@/assets/cat-rice.jpg";
 import catGrills from "@/assets/cat-grills.jpg";
@@ -90,8 +90,9 @@ export default function Index() {
     },
   });
 
-  const popular = (data?.items ?? []).filter((i) => i.available).slice(0, 6);
-  const galleryImgs = (data?.items ?? []).filter((i) => i.image_url).slice(0, 8);
+  const menuItems = data?.items ?? [];
+  const activeMenuCategories = (data?.categories ?? []).filter((category) => category.active !== false);
+  const galleryImgs = menuItems.filter((i) => i.image_url).slice(0, 8);
 
   const onAdd = (item) => {
     add({ id: item.id, name: item.name, price: item.price_ngn, image_url: item.image_url });
@@ -104,15 +105,26 @@ export default function Index() {
       <CartSheet open={cartOpen} onOpenChange={setCartOpen} />
 
       {/* ============================== HERO ============================== */}
-      <section className="relative isolate flex min-h-[100svh] items-center overflow-hidden">
-        <div className="absolute inset-0 -z-10">
+      <section className="relative isolate flex min-h-[760px] items-center overflow-hidden bg-secondary/35 lg:min-h-[720px]">
+        <div className="absolute bottom-0 right-0 top-0 -z-10 w-full overflow-hidden sm:w-[58%] lg:w-[54%]">
           <img
             src={heroImg}
             alt="A cinematic spread of Nigerian dishes"
             className="h-full w-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-background/70 via-background/60 to-background" />
-          <div className="absolute inset-0 bg-gradient-to-r from-background/90 via-background/30 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-foreground/30 via-transparent to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-b from-secondary/95 via-secondary/80 to-secondary/55 sm:hidden" />
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 112 900"
+            preserveAspectRatio="none"
+            className="absolute inset-y-0 left-0 hidden h-full w-28 text-secondary sm:block"
+          >
+            <path
+              fill="currentColor"
+              d="M0 0H112V84C112 116 62 121 62 164C62 208 112 210 112 255V337C112 373 62 377 62 423C62 469 112 472 112 518V602C112 638 62 644 62 689C62 736 112 738 112 783V900H0Z"
+            />
+          </svg>
         </div>
 
         {/* floating decorations */}
@@ -129,14 +141,14 @@ export default function Index() {
           transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
         />
 
-        <div className="mx-auto w-full max-w-7xl px-6 pt-32 pb-20 sm:px-8 lg:px-12">
+        <div className="mx-auto w-full max-w-7xl px-6 pb-16 pt-32 sm:px-8 lg:px-12">
           <motion.div
             initial="hidden" animate="visible"
-            className="max-w-3xl"
+            className="max-w-2xl"
           >
             <motion.span
               variants={fadeUp} custom={0}
-              className="inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-4 py-1.5 text-[11px] font-medium uppercase tracking-[0.2em] text-primary backdrop-blur"
+              className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.25em] text-primary"
             >
               <span className="h-1.5 w-1.5 rounded-full bg-primary" />
               Authentic Nigerian Cuisine
@@ -144,7 +156,7 @@ export default function Index() {
 
             <motion.h1
               variants={fadeUp} custom={1}
-              className="mt-6 font-display text-5xl font-semibold leading-[1.02] tracking-tight text-foreground sm:text-6xl md:text-7xl lg:text-[88px]"
+              className="mt-5 font-display text-5xl font-semibold leading-[0.98] tracking-tight text-foreground sm:text-6xl md:text-7xl lg:text-[80px]"
             >
               Every Plate <br className="hidden sm:block" />
               Tells a <span className="italic text-primary">Story.</span>
@@ -152,7 +164,7 @@ export default function Index() {
 
             <motion.p
               variants={fadeUp} custom={2}
-              className="mt-6 max-w-xl text-base leading-relaxed text-foreground/75 sm:text-lg"
+              className="mt-6 max-w-xl text-base leading-relaxed text-foreground/80 sm:text-lg"
             >
               From smoky party jollof to slow-simmered egusi — we bring you generations
               of Nigerian flavour, cooked fresh and delivered to your door.
@@ -165,7 +177,7 @@ export default function Index() {
                   <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                 </a>
               </Button>
-              <Button asChild variant="outline" size="lg" className="h-12 rounded-full border-white/20 bg-white/5 px-7 text-foreground backdrop-blur hover:border-primary hover:bg-white/10 hover:text-primary">
+              <Button asChild variant="outline" size="lg" className="h-12 rounded-full border-foreground/40 bg-background/65 px-7 text-foreground backdrop-blur hover:border-primary hover:bg-primary/5 hover:text-primary">
                 <a href="#menu">Browse Menu</a>
               </Button>
             </motion.div>
@@ -173,16 +185,16 @@ export default function Index() {
             {/* stat cards */}
             <motion.div
               variants={fadeUp} custom={4}
-              className="mt-14 grid max-w-2xl grid-cols-1 gap-4 sm:grid-cols-3"
+              className="mt-12 grid max-w-2xl grid-cols-1 gap-3 sm:grid-cols-2"
             >
               {[
-                { icon: Star,  label: "4.9 Rating",       sub: "2,300+ reviews" },
+                // { icon: Star,  label: "4.9 Rating",       sub: "2,300+ reviews" },
                 { icon: Truck, label: "30–45 min",         sub: "Fast delivery" },
                 { icon: Utensils, label: "50+ Dishes",     sub: "Authentic menu" },
               ].map(({ icon: Icon, label, sub }) => (
                 <div
                   key={label}
-                  className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-4 backdrop-blur-md"
+                  className="flex items-center gap-4 border-r border-border/80 px-1 py-2 last:border-0 sm:px-5"
                 >
                   <span className="grid h-11 w-11 flex-none place-items-center rounded-xl bg-primary/15 text-primary">
                     <Icon className="h-5 w-5" />
@@ -199,10 +211,10 @@ export default function Index() {
       </section>
 
       {/* ========================= FEATURED CATEGORIES =========================== */}
-      <section className="relative py-24 sm:py-32">
+      <section className="relative bg-secondary/35 py-20 sm:py-24">
         <SectionHeader eyebrow="Explore" title="Featured Categories" sub="A menu built around the dishes Nigerians love the most." />
 
-        <div className="mx-auto mt-14 grid max-w-7xl grid-cols-1 gap-5 px-6 sm:grid-cols-2 lg:grid-cols-3 lg:px-8">
+        <div className="mx-auto mt-12 grid max-w-7xl grid-cols-1 gap-4 px-6 sm:grid-cols-2 lg:grid-cols-5 lg:px-8">
           {featuredCategories.map((c, i) => (
             <motion.a
               key={c.name}
@@ -210,23 +222,20 @@ export default function Index() {
               variants={fadeUp} custom={i}
               initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.3 }}
               whileHover={{ y: -6 }}
-              className={`group relative overflow-hidden rounded-3xl border border-white/10 bg-card ${
-                i === 0 ? "lg:col-span-2 lg:row-span-2" : ""
-              }`}
+              className="group relative overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm"
             >
-              <div className={`relative ${i === 0 ? "aspect-[4/3] lg:aspect-auto lg:h-full" : "aspect-[4/3]"}`}>
+              <div className="relative aspect-[4/3]">
                 <img
                   src={c.img}
                   alt={c.name}
                   loading="lazy"
                   className="h-full w-full object-cover transition-transform duration-[1200ms] group-hover:scale-105"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
-                <div className="absolute inset-0 flex flex-col justify-end p-6 sm:p-8">
-                  <div className="mb-2 text-2xl">{c.emoji}</div>
-                  <h3 className="font-display text-2xl font-semibold text-foreground sm:text-3xl">{c.name}</h3>
-                  <p className="mt-1 max-w-xs text-sm text-muted-foreground">{c.desc}</p>
-                  <span className="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-foreground/80 to-transparent p-5 pt-16">
+                  <div className="mb-1 text-lg">{c.emoji}</div>
+                  <h3 className="font-display text-xl font-semibold text-primary-foreground">{c.name}</h3>
+                  <p className="mt-1 max-w-xs text-xs text-primary-foreground/75">{c.desc}</p>
+                  <span className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-secondary">
                     Explore <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
                   </span>
                 </div>
@@ -237,46 +246,57 @@ export default function Index() {
       </section>
 
       {/* ========================= POPULAR DISHES =========================== */}
-      <section id="menu" className="relative bg-[oklch(0.14_0.008_60)] py-24 sm:py-32">
+      <section id="menu" className="relative bg-background py-20 sm:py-24">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
-        <SectionHeader eyebrow="On The Table" title="Customer Favorites" sub="Six dishes our regulars order again and again." />
+        <SectionHeader eyebrow="On The Table" title="Customer Favorites" sub="Explore every dish, arranged by its kitchen category." />
 
-        <div className="mx-auto mt-14 grid max-w-7xl grid-cols-1 gap-6 px-6 sm:grid-cols-2 lg:grid-cols-3 lg:px-8">
-          {popular.length === 0
-            ? Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="h-[420px] animate-pulse rounded-3xl bg-white/[0.04]" />
-              ))
-            : popular.map((item, i) => (
-                <motion.article
-                  key={item.id}
-                  variants={fadeUp} custom={i}
-                  initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }}
-                  whileHover={{ y: -8 }}
-                  className="group flex flex-col overflow-hidden rounded-3xl border border-white/10 bg-card transition-shadow hover:shadow-2xl hover:shadow-primary/10"
-                >
-                  <div className="relative aspect-[4/3] overflow-hidden">
-                    {item.image_url ? (
-                      <img src={item.image_url} alt={item.name} loading="lazy" className="h-full w-full object-cover transition-transform duration-[900ms] group-hover:scale-110" />
-                    ) : (
-                      <div className="grid h-full place-items-center bg-muted text-muted-foreground">No image</div>
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
-                    <div className="absolute left-4 top-4 inline-flex items-center gap-1 rounded-full bg-background/80 px-2.5 py-1 text-xs font-medium text-primary backdrop-blur">
-                      <Star className="h-3 w-3 fill-primary" /> 4.9
+        <div className="mx-auto mt-14 max-w-7xl space-y-16 px-6 lg:px-8">
+          {!data
+            ? <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-[420px] animate-pulse rounded-2xl bg-muted" />)}
+              </div>
+            : activeMenuCategories.map((category) => {
+                const categoryItems = menuItems.filter((item) => item.category_id === category.id && item.available);
+                if (categoryItems.length === 0) return null;
+                return (
+                  <section key={category.id} aria-labelledby={`category-${category.id}`}>
+                    <div className="mb-6 flex items-center gap-4">
+                      <h3 id={`category-${category.id}`} className="font-display text-3xl text-foreground sm:text-4xl">{category.name}</h3>
+                      <div className="h-px flex-1 bg-border" />
                     </div>
-                  </div>
-                  <div className="flex flex-1 flex-col p-6">
-                    <h3 className="font-display text-xl font-semibold text-foreground">{item.name}</h3>
-                    <p className="mt-2 line-clamp-2 flex-1 text-sm text-muted-foreground">{item.description}</p>
-                    <div className="mt-5 flex items-center justify-between">
-                      <span className="font-display text-xl font-semibold text-primary">{formatNaira(item.price_ngn)}</span>
-                      <Button size="sm" onClick={() => onAdd(item)} className="gap-1.5 rounded-full bg-primary text-primary-foreground hover:bg-primary/90">
-                        <Plus className="h-4 w-4" /> Add
-                      </Button>
+                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                      {categoryItems.map((item, i) => (
+                        <motion.article
+                          key={item.id}
+                          variants={fadeUp} custom={i}
+                          initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }}
+                          whileHover={{ y: -8 }}
+                          className="group flex flex-col overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm transition-shadow hover:shadow-xl hover:shadow-primary/10"
+                        >
+                          <div className="relative aspect-[4/3] overflow-hidden">
+                            {item.image_url ? (
+                              <img src={item.image_url} alt={item.name} loading="lazy" className="h-full w-full object-cover transition-transform duration-[900ms] group-hover:scale-110" />
+                            ) : (
+                              <div className="grid h-full place-items-center bg-muted text-muted-foreground">No image</div>
+                            )}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+                          </div>
+                          <div className="flex flex-1 flex-col p-6">
+                            <h4 className="font-display text-xl font-semibold text-foreground">{item.name}</h4>
+                            <p className="mt-2 line-clamp-2 flex-1 text-sm text-muted-foreground">{item.description}</p>
+                            <div className="mt-5 flex items-center justify-between">
+                              <span className="font-display text-xl font-semibold text-primary">{formatNaira(item.price_ngn)}</span>
+                              <Button size="sm" onClick={() => onAdd(item)} className="gap-1.5 rounded-full bg-primary text-primary-foreground hover:bg-primary/90">
+                                <Plus className="h-4 w-4" /> Add
+                              </Button>
+                            </div>
+                          </div>
+                        </motion.article>
+                      ))}
                     </div>
-                  </div>
-                </motion.article>
-              ))}
+                  </section>
+                );
+              })}
         </div>
 
         <div className="mt-14 text-center">
@@ -287,7 +307,7 @@ export default function Index() {
       </section>
 
       {/* ========================== WHY CHOOSE US =========================== */}
-      <section className="relative py-24 sm:py-32">
+      <section className="relative bg-secondary/35 py-20 sm:py-24">
         <SectionHeader eyebrow="Why Tradish" title="Cooked with soul, delivered with care." />
 
         <div className="mx-auto mt-14 grid max-w-7xl grid-cols-1 gap-6 px-6 sm:grid-cols-2 lg:grid-cols-4 lg:px-8">
@@ -297,7 +317,7 @@ export default function Index() {
               variants={fadeUp} custom={i}
               initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.3 }}
               whileHover={{ y: -6 }}
-              className="group relative overflow-hidden rounded-3xl border border-white/10 bg-card p-8 transition-colors hover:border-primary/40"
+              className="group relative overflow-hidden rounded-2xl border border-border/80 bg-card p-7 transition-colors hover:border-primary/40"
             >
               <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-primary/10 blur-2xl transition-opacity group-hover:bg-primary/20" />
               <span className="relative grid h-12 w-12 place-items-center rounded-2xl bg-primary/15 text-primary">
@@ -311,7 +331,7 @@ export default function Index() {
       </section>
 
       {/* =========================== TESTIMONIALS =========================== */}
-      <section className="relative overflow-hidden bg-[oklch(0.14_0.008_60)] py-24 sm:py-32">
+      <section className="relative overflow-hidden bg-background py-20 sm:py-24">
         <SectionHeader eyebrow="Kind Words" title="Loved across Lagos." />
 
         <div className="relative mt-14 [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]">
@@ -319,7 +339,7 @@ export default function Index() {
             {[...testimonials, ...testimonials].map((t, i) => (
               <figure
                 key={i}
-                className="w-[340px] flex-none rounded-3xl border border-white/10 bg-card p-7"
+                className="w-[340px] flex-none rounded-2xl border border-border/80 bg-card p-7 shadow-sm"
               >
                 <Quote className="h-6 w-6 text-primary/70" />
                 <blockquote className="mt-4 text-sm leading-relaxed text-foreground/85">"{t.text}"</blockquote>
@@ -341,7 +361,7 @@ export default function Index() {
       </section>
 
       {/* =============================== ABOUT ============================== */}
-      <section id="about" className="relative py-24 sm:py-32">
+      <section id="about" className="relative bg-secondary/35 py-20 sm:py-24">
         <div className="mx-auto grid max-w-7xl gap-14 px-6 lg:grid-cols-2 lg:items-center lg:gap-20 lg:px-8">
           <motion.div
             initial={{ opacity: 0, x: -30 }}
@@ -351,10 +371,10 @@ export default function Index() {
             className="relative"
           >
             <div className="absolute -inset-6 rounded-[2rem] bg-primary/10 blur-3xl" aria-hidden />
-            <div className="relative overflow-hidden rounded-[2rem] border border-white/10">
+            <div className="relative overflow-hidden rounded-[2rem] border border-border">
               <img src={chefImg} alt="Head chef stirring a pot of jollof rice" loading="lazy" className="aspect-[4/5] w-full object-cover" />
             </div>
-            <div className="absolute -bottom-6 -right-6 hidden max-w-[220px] rounded-2xl border border-white/10 bg-background/90 p-5 backdrop-blur-xl sm:block">
+            <div className="absolute -bottom-6 -right-6 hidden max-w-[220px] rounded-2xl border border-border bg-card/95 p-5 shadow-xl backdrop-blur-xl sm:block">
               <div className="flex items-center gap-2 text-primary"><Flame className="h-4 w-4" /><span className="text-xs font-semibold uppercase tracking-[0.18em]">25+ Years</span></div>
               <p className="mt-2 text-sm text-muted-foreground">of feeding families across Lagos.</p>
             </div>
@@ -375,10 +395,10 @@ export default function Index() {
               We still cook every dish to order, with recipes passed down three generations.
             </p>
 
-            <ol className="mt-10 space-y-6 border-l border-white/10 pl-6">
+            <ol className="mt-10 space-y-6 border-l border-border pl-6">
               {timeline.map((t) => (
                 <li key={t.year} className="relative">
-                  <span className="absolute -left-[31px] top-1 grid h-4 w-4 place-items-center rounded-full border border-primary bg-background">
+                    <span className="absolute -left-[31px] top-1 grid h-4 w-4 place-items-center rounded-full border border-primary bg-secondary">
                     <span className="h-1.5 w-1.5 rounded-full bg-primary" />
                   </span>
                   <div className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">{t.year}</div>
@@ -396,7 +416,7 @@ export default function Index() {
 
       {/* ============================== GALLERY ============================= */}
       {galleryImgs.length > 0 && (
-        <section id="gallery" className="bg-[oklch(0.14_0.008_60)] py-24 sm:py-32">
+        <section id="gallery" className="bg-background py-20 sm:py-24">
           <SectionHeader eyebrow="@tradish.lagos" title="Straight from the kitchen." />
           <div className="mx-auto mt-14 max-w-7xl px-6 lg:px-8">
             <div className="columns-2 gap-4 md:columns-3 lg:columns-4 [column-fill:_balance]">
@@ -407,7 +427,7 @@ export default function Index() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, amount: 0.1 }}
                   transition={{ duration: 0.6, delay: (i % 4) * 0.08 }}
-                  className="mb-4 break-inside-avoid overflow-hidden rounded-2xl border border-white/10"
+                  className="mb-4 break-inside-avoid overflow-hidden rounded-2xl border border-border"
                 >
                   <img
                     src={g.image_url}
@@ -423,26 +443,26 @@ export default function Index() {
       )}
 
       {/* ================================ CTA ================================ */}
-      <section className="relative overflow-hidden py-24 sm:py-32">
+      <section className="relative overflow-hidden bg-secondary/35 py-20 sm:py-24">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <div className="relative overflow-hidden rounded-[2.5rem] border border-primary/20 bg-gradient-to-br from-[oklch(0.22_0.05_55)] via-[oklch(0.18_0.03_55)] to-[oklch(0.14_0.008_60)] p-10 sm:p-16">
+          <div className="relative overflow-hidden rounded-[2rem] border border-primary/20 bg-gradient-to-r from-primary via-[oklch(0.42_0.15_31)] to-[oklch(0.34_0.11_31)] p-10 sm:p-16">
             <div className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-primary/25 blur-3xl" />
             <div className="pointer-events-none absolute -bottom-24 -left-24 h-80 w-80 rounded-full bg-accent/20 blur-3xl" />
             <div className="relative grid gap-10 lg:grid-cols-[1.4fr_1fr] lg:items-center">
               <div>
-                <span className="text-[11px] font-semibold uppercase tracking-[0.24em] text-primary">Craving something?</span>
-                <h2 className="mt-3 font-display text-4xl font-semibold leading-tight text-foreground sm:text-5xl lg:text-6xl">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.24em] text-primary-foreground/75">Craving something?</span>
+                <h2 className="mt-3 font-display text-4xl font-semibold leading-tight text-primary-foreground sm:text-5xl lg:text-6xl">
                   Hungry already?
                 </h2>
-                <p className="mt-4 max-w-xl text-muted-foreground">
+                <p className="mt-4 max-w-xl text-primary-foreground/80">
                   Your next favourite plate is 30 minutes away. Order now and taste why Lagos keeps coming back.
                 </p>
                 <div className="mt-8 flex flex-wrap gap-4">
-                  <Button asChild size="lg" className="h-12 rounded-full bg-primary px-8 text-primary-foreground shadow-xl shadow-primary/30 hover:bg-primary/90">
+                  <Button asChild size="lg" className="h-12 rounded-full bg-background px-8 text-primary shadow-xl shadow-foreground/20 hover:bg-secondary">
                     <a href="#menu">Order Your Meal <ArrowRight className="ml-2 h-4 w-4" /></a>
                   </Button>
-                  <div className="inline-flex items-center gap-2 rounded-full border border-white/10 px-5 py-2 text-sm text-muted-foreground">
-                    <Clock className="h-4 w-4 text-primary" /> Delivering right now
+                  <div className="inline-flex items-center gap-2 rounded-full border border-primary-foreground/30 px-5 py-2 text-sm text-primary-foreground/85">
+                    <Clock className="h-4 w-4 text-primary-foreground" /> Delivering right now
                   </div>
                 </div>
               </div>
@@ -452,9 +472,9 @@ export default function Index() {
                 <motion.div
                   animate={{ y: [0, -10, 0] }}
                   transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                  className="relative mx-auto grid h-56 w-56 place-items-center rounded-full border border-primary/30 bg-primary/10 backdrop-blur"
+                  className="relative mx-auto grid h-56 w-56 place-items-center rounded-full border border-primary-foreground/30 bg-primary-foreground/10 backdrop-blur"
                 >
-                  <Truck className="h-24 w-24 text-primary" strokeWidth={1.25} />
+                  <Truck className="h-24 w-24 text-primary-foreground" strokeWidth={1.25} />
                 </motion.div>
                 <div className="absolute inset-x-0 -bottom-2 mx-auto h-4 w-40 rounded-full bg-black/40 blur-lg" />
               </div>

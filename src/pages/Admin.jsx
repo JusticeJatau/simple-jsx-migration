@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuthUser } from "@/components/protected-route";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bell, BellOff, Loader2, LogOut, Pencil, Plus, Trash2, UtensilsCrossed } from "lucide-react";
+import { Bell, BellOff, Loader2, LogOut, Moon, Pencil, Plus, Sun, Trash2, UtensilsCrossed } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -89,6 +89,17 @@ VALUES ('${user.id}', 'admin');`}
     </div>;
 }
 function AdminHeader({ email, onSignOut }) {
+  const [darkMode, setDarkMode] = useState(() => {
+    if (typeof window === "undefined") return false;
+    const savedTheme = localStorage.getItem("tradish-theme");
+    return savedTheme ? savedTheme === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
+  });
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", darkMode);
+    localStorage.setItem("tradish-theme", darkMode ? "dark" : "light");
+  }, [darkMode]);
+
   return <header className="border-b border-border bg-primary text-primary-foreground">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
         <Link to="/" className="flex items-center gap-2">
@@ -97,6 +108,14 @@ function AdminHeader({ email, onSignOut }) {
         </Link>
         <div className="flex items-center gap-3 text-sm">
           <span className="hidden text-primary-foreground/70 sm:inline">{email}</span>
+          <button
+            type="button"
+            onClick={() => setDarkMode((value) => !value)}
+            aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+            className="grid h-9 w-9 place-items-center rounded-full border border-primary-foreground/25 text-primary-foreground transition-colors hover:bg-primary-foreground/10"
+          >
+            {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </button>
           <Button size="sm" variant="ghost" onClick={onSignOut} className="text-primary-foreground hover:bg-primary-foreground/10">
             <LogOut className="mr-1.5 h-4 w-4" /> Sign out
           </Button>

@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { supabase } from "../integrations/supabase/client";
+import { useCart } from "@/lib/cart.jsx";
 
 function PaymentSuccess() {
   const [searchParams] = useSearchParams();
+  const { clear } = useCart();
 
   const reference = searchParams.get("reference");
 
@@ -36,6 +38,10 @@ function PaymentSuccess() {
     setChecking(false);
     setLoading(false);
   }
+
+  useEffect(() => {
+    if (order?.payment_status === "paid") clear();
+  }, [order?.payment_status, clear]);
 
   if (loading) {
     return (
