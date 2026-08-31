@@ -112,8 +112,8 @@ export default function Index() {
             alt="A cinematic spread of Nigerian dishes"
             className="h-full w-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-foreground/30 via-transparent to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-b from-secondary/95 via-secondary/80 to-secondary/55 sm:hidden" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent dark:from-black/80 dark:via-black/35" />
+          <div className="absolute inset-0 bg-gradient-to-b from-secondary/95 via-secondary/80 to-secondary/55 dark:from-black/90 dark:via-black/75 dark:to-black/45 sm:hidden" />
           <svg
             aria-hidden="true"
             viewBox="0 0 112 900"
@@ -231,7 +231,7 @@ export default function Index() {
                   loading="lazy"
                   className="h-full w-full object-cover transition-transform duration-[1200ms] group-hover:scale-105"
                 />
-                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-foreground/80 to-transparent p-5 pt-16">
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-foreground/80 to-transparent p-5 pt-16 dark:from-black/90 dark:via-black/45">
                   <div className="mb-1 text-lg">{c.emoji}</div>
                   <h3 className="font-display text-xl font-semibold text-primary-foreground">{c.name}</h3>
                   <p className="mt-1 max-w-xs text-xs text-primary-foreground/75">{c.desc}</p>
