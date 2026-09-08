@@ -37,14 +37,26 @@ export function SiteFooter() {
         <div>
           <h4 className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-primary">Visit Us</h4>
           <ul className="mt-5 space-y-3 text-sm text-muted-foreground">
-            <li className="flex gap-3"><MapPin className="mt-0.5 h-4 w-4 flex-none text-primary" />12 Awolowo Way, Ikeja, Lagos</li>
-            <li className="flex gap-3"><Phone className="mt-0.5 h-4 w-4 flex-none text-primary" />+234 800 000 0000</li>
-            <li className="flex gap-3"><Mail className="mt-0.5 h-4 w-4 flex-none text-primary" />hello@tradish.ng</li>
+            <li className="flex gap-3"><MapPin className="mt-0.5 h-4 w-4 flex-none text-primary" />Damaturu, Yobe State</li>
+            <li className="flex gap-3">
+              <Phone className="mt-0.5 h-4 w-4 flex-none text-primary" />
+
+              <a href="tel:+234XXXXXXXXXX" className="hover:text-primary">
+                +234 XXX XXX XXXX
+              </a>
+            </li>
+            <li className="flex gap-3">
+              <Mail className="mt-0.5 h-4 w-4 flex-none text-primary" />
+
+              <a href="mailto:hello@tradish.ng" className="hover:text-primary">
+                hello@tradish.ng
+              </a>
+            </li>
           </ul>
         </div>
       </div>
       <div className="border-t border-border py-5 text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} Tradish Restaurant. Crafted with love in Lagos.
+        © {new Date().getFullYear()} Tradish Restaurant. Crafted with care in Damaturu.
       </div>
     </footer>
   );
