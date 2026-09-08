@@ -46,10 +46,26 @@ const featuredCategories = [
 ];
 
 const whyUs = [
-  { icon: Leaf,        title: "Fresh Ingredients",   desc: "Sourced daily from Lagos' finest local markets." },
-  { icon: Truck,       title: "Fast Delivery",       desc: "Delivered hot in 30–45 minutes across Lagos." },
-  { icon: ChefHat,     title: "Traditional Recipes", desc: "Family recipes passed down three generations." },
-  { icon: ShieldCheck, title: "Secure Payments",     desc: "Safe checkout, powered by Paystack." },
+  {
+    icon: Leaf,
+    title: "Fresh Ingredients",
+    desc: "Prepared with fresh, carefully selected ingredients.",
+  },
+  {
+    icon: Truck,
+    title: "Fast Delivery",
+    desc: "Fresh meals delivered across Damaturu.",
+  },
+  {
+    icon: ChefHat,
+    title: "Authentic Flavours",
+    desc: "Delicious Nigerian dishes prepared with care.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Secure Payments",
+    desc: "Safe and convenient checkout powered by Paystack.",
+  },
 ];
 
 const testimonials = [
