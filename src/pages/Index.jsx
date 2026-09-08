@@ -405,11 +405,12 @@ export default function Index() {
           >
             <span className="text-[11px] font-semibold uppercase tracking-[0.24em] text-primary">Our Story</span>
             <h2 className="mt-3 font-display text-4xl font-semibold leading-tight text-foreground sm:text-5xl">
-              A family kitchen that grew into a Lagos favourite.
+              Authentic Nigerian food, prepared with care.
             </h2>
             <p className="mt-5 text-muted-foreground">
-              Tradish began in Ikeja — a place where jollof was smoky, egusi was thick, and every plate came with a story.
-              We still cook every dish to order, with recipes passed down three generations.
+              Tradish serves carefully prepared Nigerian dishes made for everyday meals,
+family gatherings and special occasions. Browse the menu, place your order
+online and enjoy delicious food across Damaturu.
             </p>
 
             <ol className="mt-10 space-y-6 border-l border-border pl-6">
@@ -472,7 +473,7 @@ export default function Index() {
                   Hungry already?
                 </h2>
                 <p className="mt-4 max-w-xl text-primary-foreground/80">
-                  Your next favourite plate is 30 minutes away. Order now and taste why Lagos keeps coming back.
+                  Your next favourite plate is 30 minutes away. Order now and taste why Damaturu keeps coming back.
                 </p>
                 <div className="mt-8 flex flex-wrap gap-4">
                   <Button asChild size="lg" className="h-12 rounded-full bg-background px-8 text-primary shadow-xl shadow-foreground/20 hover:bg-secondary">
