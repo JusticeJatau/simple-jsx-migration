@@ -207,7 +207,11 @@ export default function Index() {
               {[
                 // { icon: Star,  label: "4.9 Rating",       sub: "2,300+ reviews" },
                 { icon: Truck, label: "30–45 min",         sub: "Fast delivery" },
-                { icon: Utensils, label: "50+ Dishes",     sub: "Authentic menu" },
+                {
+                  icon: Utensils,
+                  label: menuItems.length > 0 ? `${menuItems.length} Dishes` : "Our Menu",
+                  sub: "Freshly prepared",
+                },
               ].map(({ icon: Icon, label, sub }) => (
                 <div
                   key={label}
@@ -318,7 +322,10 @@ export default function Index() {
 
         <div className="mt-14 text-center">
           <Button asChild variant="outline" size="lg" className="rounded-full border-primary/30 bg-transparent text-foreground hover:bg-primary hover:text-primary-foreground">
-            <a href="#gallery">See the full menu <ArrowRight className="ml-2 h-4 w-4" /></a>
+            <a href="#gallery">
+              View Food Gallery
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </a>
           </Button>
         </div>
       </section>
@@ -435,7 +442,10 @@ online and enjoy delicious food across Damaturu.
       {/* ============================== GALLERY ============================= */}
       {galleryImgs.length > 0 && (
         <section id="gallery" className="bg-background py-20 sm:py-24">
-          <SectionHeader eyebrow="@tradish.lagos" title="Straight from the kitchen." />
+          <SectionHeader
+            eyebrow="Tradish Gallery"
+            title="Straight from the kitchen."
+          />
           <div className="mx-auto mt-14 max-w-7xl px-6 lg:px-8">
             <div className="columns-2 gap-4 md:columns-3 lg:columns-4 [column-fill:_balance]">
               {galleryImgs.map((g, i) => (
@@ -473,7 +483,7 @@ online and enjoy delicious food across Damaturu.
                   Hungry already?
                 </h2>
                 <p className="mt-4 max-w-xl text-primary-foreground/80">
-                  Your next favourite plate is 30 minutes away. Order now and taste why Damaturu keeps coming back.
+                  Your next favourite meal is only a few clicks away. Order now and enjoy freshly prepared Nigerian food in Damaturu.
                 </p>
                 <div className="mt-8 flex flex-wrap gap-4">
                   <Button asChild size="lg" className="h-12 rounded-full bg-background px-8 text-primary shadow-xl shadow-foreground/20 hover:bg-secondary">
