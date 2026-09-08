@@ -348,7 +348,7 @@ export default function Index() {
       </section>
 
       {/* =========================== TESTIMONIALS =========================== */}
-      <section className="relative overflow-hidden bg-background py-20 sm:py-24">
+      {/* <section className="relative overflow-hidden bg-background py-20 sm:py-24">
         <SectionHeader eyebrow="Kind Words" title="Loved across Lagos." />
 
         <div className="relative mt-14 [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]">
@@ -375,7 +375,7 @@ export default function Index() {
             ))}
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* =============================== ABOUT ============================== */}
       <section id="about" className="relative bg-secondary/35 py-20 sm:py-24">
